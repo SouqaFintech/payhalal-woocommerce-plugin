@@ -1,15 +1,12 @@
 <?php
-/*
- * Plugin Name: PayHalal for WooCommerce
- * Plugin URI: payhalal.my
- * Description: Payment Without Was-Was
- * Author:  Souqa Fintech Sdn Bhd
- * Author URI: https://payhalal.my
- * Version: 1.0.2
- *
 
- /*
- * The class itself, please note that it is inside plugins_loaded action hook
+/**
+ * @Plugin Name: PayHalal for WooCommerce
+ * @Plugin URI: payhalal.my
+ * @Description: Payment Without Was-Was
+ * @Author:  Souqa Fintech Sdn Bhd
+ * @Author URI: https://payhalal.my
+ * @Version: 1.0.2
  */
 
 add_action('plugins_loaded', 'payhalal_init_gateway_class');
@@ -17,7 +14,7 @@ add_action('plugins_loaded', 'payhalal_init_gateway_class');
 function payhalal_init_gateway_class()
 { 
     add_filter('woocommerce_payment_gateways', 'payhalal_add_gateway');
-	
+    
     function payhalal_add_gateway( $methods ) {
         $methods[] = 'WC_Payhalal_Gateway';
         return $methods;
@@ -27,7 +24,7 @@ function payhalal_init_gateway_class()
     {
         /**
          * Class constructor, more about it in Step 3
-         */
+        */
         public function __construct()
         {
 
@@ -66,7 +63,7 @@ function payhalal_init_gateway_class()
 
         /**
          * Plugin options
-         */
+        */
         public function init_form_fields()
         {
             $this->form_fields = array(
@@ -118,8 +115,8 @@ function payhalal_init_gateway_class()
         }
 
         /*
-         * We're processing the payments here
-         */
+        * We're processing the payments here
+        */
         public function process_payment($order_id)
         {
             return array(
@@ -155,7 +152,7 @@ function payhalal_init_gateway_class()
                         ?> <input type="hidden" name="<?= $key; ?>" value="<?= $value; ?>" > <?php 
                     } ?>
                         <div style="display: grid; align-items: center; margin: auto;">
-					        <button type="submit" style="margin: auto; align-items: center; text-align: center;">Please click here if you are not redirected within a few seconds</button>
+                            <button type="submit" style="margin: auto; align-items: center; text-align: center;">Please click here if you are not redirected within a few seconds</button>
                         </div>
                     </form>
 
@@ -198,16 +195,16 @@ function payhalal_init_gateway_class()
                 $order = wc_get_order($post_array['order_id']);
 
                 unset($data_out);
-		        $mode = $this->testmode;
+                $mode = $this->testmode;
 
                 if($mode == 1) {
                     $key = $this->get_option('test_private_key');
-		            $app = $this->get_option('test_publishable_key');	
+                    $app = $this->get_option('test_publishable_key');	
                 } else {
                     $key = $this->get_option('private_key');
-    		        $app = $this->get_option('publishable_key');
+                    $app = $this->get_option('publishable_key');
                 }    
-		    
+            
                 $data_out["app_id"] = $app;
                 $data_out["amount"] = $order->total;
                 $data_out["currency"] = $order->get_currency();
@@ -217,7 +214,7 @@ function payhalal_init_gateway_class()
                 $data_out["customer_email"] = $order->get_billing_email();
                 $data_out["customer_phone"] = $order->get_billing_phone();
                 $data_out["status"] = $post_array["status"];
-		
+        
                 $dataout_hash = self::ph_sha256($data_out, $key);
 
                 if ($dataout_hash == $post_array['hash'] && $post_array['amount'] == $order->total) {
@@ -236,7 +233,7 @@ function payhalal_init_gateway_class()
 
                         wp_redirect($this->get_return_url($order));
                     } elseif ($post_array["status"] == "FAIL") {
-
+                        /* wc_add_notice restructure */
                         wc_add_notice('Payment Failed. Please Try Again', 'error');
                         $order->update_status('failed', 'Payment Failed.');
                         wp_redirect(WC()->cart->get_cart_url());
