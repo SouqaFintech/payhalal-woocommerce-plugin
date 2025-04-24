@@ -167,7 +167,7 @@ function payhalal_init_gateway_class()
 
                 $data_out["app_id"] = $app;
                 $data_out["amount"] = $order->get_total();
-                $data_out["currency"] = $order->get_currency();
+                $data_out["currency"] = "MYR";
                 $data_out["product_description"] = $this->product_description;
                 $data_out["order_id"] = $post_array["order_id"];
                 $data_out["customer_name"] = $order->get_billing_first_name() . " " . $order->get_billing_last_name();
