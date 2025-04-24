@@ -5,7 +5,7 @@
  * Description: Payment Without Was-Was
  * Author:  Souqa Fintech Sdn Bhd
  * Author URI: https://payhalal.my
- * Version: 1.0.2
+ * Version: 1.0.3
  */
 
 add_action('plugins_loaded', 'payhalal_init_gateway_class');
@@ -167,7 +167,7 @@ function payhalal_init_gateway_class()
 
                 $data_out["app_id"] = $app;
                 $data_out["amount"] = $order->get_total();
-                $data_out["currency"] = "MYR";
+                $data_out["currency"] = $this->get_payhalal_currency();
                 $data_out["product_description"] = $this->product_description;
                 $data_out["order_id"] = $post_array["order_id"];
                 $data_out["customer_name"] = $order->get_billing_first_name() . " " . $order->get_billing_last_name();
@@ -177,21 +177,35 @@ function payhalal_init_gateway_class()
 
                 $dataout_hash = self::ph_sha256($data_out, $key);
 
-                // ✅ On-screen debug output
-                echo "<h2>🔍 PayHalal Callback Debug</h2>";
-                echo "<pre>";
-                echo "Expected Hash: " . $dataout_hash . "\n";
-                echo "Received Hash: " . $post_array['hash'] . "\n\n";
-                echo "Data used to generate hash:\n";
-                print_r($data_out);
-                echo "\nFull POST array:\n";
-                print_r($post_array);
-                echo "</pre>";
-                exit;
-
-                // The rest is skipped due to exit during test
+                if ($dataout_hash === $post_array['hash'] && $post_array['amount'] == $order->get_total()) {
+                    if ($post_array["status"] == "SUCCESS") {
+                        WC()->cart->empty_cart();
+                        $order->add_order_note(__('Payment Success. Transaction ID: ' . $post_array["transaction_id"]));
+                        $order->add_order_note(__('Payment Method: ' . $post_array["channel"]));
+                        $order->payment_complete();
+                        wp_redirect($this->get_return_url($order));
+                    } elseif ($post_array["status"] == "FAIL") {
+                        wc_add_notice('Payment Failed. Please Try Again.', 'error');
+                        $order->update_status('failed', 'Payment Failed.');
+                        wp_redirect(WC()->cart->get_cart_url());
+                    } elseif ($post_array["status"] == "PENDING") {
+                        wc_add_notice('Payment is pending.', 'error');
+                        $order->update_status('pending', 'Payment Pending.');
+                        wp_redirect(WC()->cart->get_cart_url());
+                    } elseif ($post_array["status"] == "TIMEOUT") {
+                        wc_add_notice('Payment Timeout.', 'error');
+                        $order->update_status('failed', 'Payment Timeout.');
+                        wp_redirect(WC()->cart->get_cart_url());
+                    } else {
+                        wp_redirect(WC()->cart->get_cart_url());
+                    }
+                } else {
+                    wc_add_notice('Hash validation failed.', 'error');
+                    $order->update_status('failed', 'Hash Mismatch.');
+                    wp_redirect(WC()->cart->get_cart_url());
+                }
             } else {
-                wc_add_notice('No data was sent.', 'error');
+                wc_add_notice('No data received.', 'error');
                 wp_redirect(WC()->cart->get_cart_url());
             }
         }
@@ -199,6 +213,11 @@ function payhalal_init_gateway_class()
         public function ph_sha256($data, $secret)
         {
             return hash('sha256', $secret . $data["amount"] . $data["currency"] . $data["product_description"] . $data["order_id"] . $data["customer_name"] . $data["customer_email"] . $data["customer_phone"] . $data["status"]);
+        }
+
+        private function get_payhalal_currency()
+        {
+            return 'MYR';
         }
     }
 }
