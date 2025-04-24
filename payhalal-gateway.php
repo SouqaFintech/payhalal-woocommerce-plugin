@@ -1,17 +1,16 @@
 <?php
+/*
+ * Plugin Name: PayHalal for WooCommerce
+ * Plugin URI: payhalal.my
+ * Description: Payment Without Was-Was
+ * Author:  Souqa Fintech Sdn Bhd
+ * Author URI: https://payhalal.my
+ * Version: 1.0.2
+ *
 
-/**
- * @Plugin Name: PayHalal for WooCommerce
- * @Plugin URI: https://payhalal.my
- * @Description: Payment Without Was-Was
- * @Author: Souqa Fintech Sdn Bhd
- * @Author URI: https://payhalal.my
- * @Version: 1.0.3
+ /*
+ * The class itself, please note that it is inside plugins_loaded action hook
  */
-
-if (!defined('ABSPATH')) {
-    exit;
-}
 
 add_action('plugins_loaded', 'payhalal_init_gateway_class');
 
@@ -27,22 +26,29 @@ function payhalal_init_gateway_class()
 
     class WC_Payhalal_Gateway extends WC_Payment_Gateway
     {
-        private $logger;
-        private $log_context;
-
+        /**
+         * Class constructor, more about it in Step 3
+         */
         public function __construct()
         {
-            $this->id = 'payhalal';
-            $this->icon = '';
-            $this->has_fields = true;
+
+            $this->id = 'payhalal'; // payment gateway plugin ID
+            $this->icon = ''; // URL of the icon that will be displayed on checkout page near your gateway name
+            $this->has_fields = true; // in case you need a custom credit card form
             $this->method_title = 'PayHalal Gateway';
-            $this->method_description = 'Payment Without Was-Was';
+            $this->method_description = 'Payment Without Was-Was'; // will be displayed on the options page
 
-            $this->supports = ['products'];
+            // gateways can support subscriptions, refunds, saved payment methods,
+            // but in this tutorial we begin with simple payments
+            $this->supports = array(
+                'products'
+            );
 
+            // Method with all the options fields
             $this->init_form_fields();
-            $this->init_settings();
 
+            // Load the settings.
+            $this->init_settings();
             $this->title = $this->get_option('title');
             $this->description = $this->get_option('description');
             $this->enabled = $this->get_option('enabled');
@@ -52,175 +58,219 @@ function payhalal_init_gateway_class()
             $this->action_url = $this->testmode ? 'https://api-testing.payhalal.my/pay' : 'https://api.payhalal.my/pay';
             $this->product_description = 'WooCommerce';
 
-            $this->logger = wc_get_logger();
-            $this->log_context = 'payhalal';
-
-            add_action('woocommerce_update_options_payment_gateways_' . $this->id, [$this, 'process_admin_options']);
-            add_action('woocommerce_api_payhalalrequest', [$this, 'request_handler']);
-            add_action('woocommerce_api_wc_payhalal_gateway', [$this, 'callback_handler']);
-            add_action('woocommerce_api_payhalalstatus', [$this, 'check_status']);
+            // This action hook saves the settings
+            add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
+            add_action('woocommerce_api_payhalalrequest', array($this, 'request_handler'));
+            add_action('woocommerce_api_wc_payhalal_gateway', array($this, 'callback_handler'));
+            add_action('woocommerce_api_payhalalstatus', array($this, 'check_status'));
         }
 
-        public function log($message, $level = 'info')
-        {
-            if (defined('WP_DEBUG') && WP_DEBUG) {
-                $this->logger->log($level, $message, ['source' => $this->log_context]);
-            }
-        }
-
+        /**
+         * Plugin options
+         */
         public function init_form_fields()
         {
-            $this->form_fields = [
-                'enabled' => [
+            $this->form_fields = array(
+                'enabled' => array(
                     'title' => 'Enable/Disable',
                     'label' => 'Enable Payhalal Gateway',
                     'type' => 'checkbox',
+                    'description' => '',
                     'default' => 'no'
-                ],
-                'title' => [
+                ),
+                'title' => array(
                     'title' => 'Title',
                     'type' => 'text',
+                    'description' => 'This controls the title which the user sees during checkout.',
                     'default' => 'Pay with PayHalal',
                     'desc_tip' => true,
-                ],
-                'description' => [
+                ),
+                'description' => array(
                     'title' => 'Description',
                     'type' => 'textarea',
+                    'description' => 'Description during Checkout.',
                     'default' => '<img src="https://payhalal.my/images/pay-with-payhalal-wc.png" />',
-                ],
-                'testmode' => [
+                ),
+                'testmode' => array(
                     'title' => 'Test mode',
                     'label' => 'Enable Test Mode',
                     'type' => 'checkbox',
+                    'description' => 'Place the payment gateway in test mode.',
                     'default' => 'yes',
                     'desc_tip' => true,
-                ],
-                'test_publishable_key' => ['title' => 'Test App ID', 'type' => 'text'],
-                'test_private_key' => ['title' => 'Test Secret Key', 'type' => 'text'],
-                'publishable_key' => ['title' => 'Live App ID', 'type' => 'text'],
-                'private_key' => ['title' => 'Live Secret Key', 'type' => 'text']
-            ];
+                ),
+                'test_publishable_key' => array(
+                    'title' => 'Test App ID',
+                    'type' => 'text'
+                ),
+                'test_private_key' => array(
+                    'title' => 'Test Secret Key',
+                    'type' => 'text',
+                ),
+                'publishable_key' => array(
+                    'title' => 'Live App ID',
+                    'type' => 'text'
+                ),
+                'private_key' => array(
+                    'title' => 'Live Secret Key',
+                    'type' => 'text'
+                )
+            );
         }
 
+        /*
+         * We're processing the payments here
+         */
         public function process_payment($order_id)
         {
-            return [
+            return array(
                 'result' => 'success',
                 'redirect' => get_home_url() . '/wc-api/payhalalrequest/?order_id=' . $order_id
-            ];
+            );
         }
 
         public function request_handler()
         {
-            $order_id = $_GET['order_id'] ?? 0;
+            $order_id = $_GET['order_id'];
+            if ($order_id > 0) {
 
-            if ($order_id > 0 && ($order = wc_get_order($order_id))) {
-                $data_out = [
-                    "app_id" => $this->publishable_key,
-                    "amount" => WC()->cart->total,
-                    "currency" => $order->get_currency(),
-                    "product_description" => $this->product_description,
-                    "order_id" => $order->get_order_number(),
-                    "customer_name" => $order->get_billing_first_name() . " " . $order->get_billing_last_name(),
-                    "customer_email" => $order->get_billing_email(),
-                    "customer_phone" => $order->get_billing_phone()
-                ];
-                $data_out["hash"] = hash('sha256', $this->private_key . implode('', $data_out));
+                $order = wc_get_order($order_id);
 
-                $this->log('Initiating payment request: ' . json_encode($data_out));
+                if ($order != "") {
+                    unset($data_out);
 
-                echo '<form id="payhalal" method="post" action="' . esc_url($this->action_url) . '">';
-                foreach ($data_out as $key => $value) {
-                    echo '<input type="hidden" name="' . esc_attr($key) . '" value="' . esc_attr($value) . '">';
+                    $data_out["app_id"] = $this->publishable_key;
+                    $data_out["amount"] = WC()->cart->total;
+                    $data_out["currency"] = $order->get_currency();
+                    $data_out["product_description"] = $this->product_description;
+                    $data_out["order_id"] = $order->get_order_number();
+                    $data_out["customer_name"] = $order->get_billing_first_name() . " " . $order->get_billing_last_name();
+                    $data_out["customer_email"] = $order->get_billing_email();
+                    $data_out["customer_phone"] = $order->get_billing_phone();
+                    $data_out["hash"] = hash('sha256', $this->private_key . $data_out["amount"] . $data_out["currency"] . $data_out["product_description"] . $data_out["order_id"] . $data_out["customer_name"] . $data_out["customer_email"] . $data_out["customer_phone"]);
+
+
+?>
+                    <form id="payhalal" method="post" action="<?= $this->action_url; ?>">
+                        <?php foreach ($data_out as $key => $value) {
+                        ?> <input type="hidden" name="<?= $key; ?>" value="<?= $value; ?>"> <?php
+                                                                                        } ?>
+                        <div style="display: grid; align-items: center; margin: auto;">
+                            <button type="submit" style="margin: auto; align-items: center; text-align: center;">Please click here if you are not redirected within a few seconds</button>
+                        </div>
+                    </form>
+
+                    <script type="text/javascript">
+                        document.getElementById("payhalal").submit()
+                    </script>
+
+<?php
+                } else {
+                    wc_add_notice('Invalid Order ID', 'error');
+                    wp_redirect(WC()->cart->get_cart_url());
                 }
-                echo '<div style="display: grid; align-items: center; margin: auto;"><button type="submit">Click here if not redirected</button></div>';
-                echo '</form><script>document.getElementById("payhalal").submit();</script>';
             } else {
-                wc_add_notice('Invalid Order ID', 'error');
+                wc_add_notice('Invalid Order ID!', 'error');
                 wp_redirect(WC()->cart->get_cart_url());
-                exit;
             }
 
-            exit;
+            die();
         }
 
         public function check_status()
         {
-            $order_id = $_GET["order_id"] ?? 0;
+            $order_id = $_GET["order_id"];
             $order = wc_get_order($order_id);
-
-            if ($order && in_array($order->status, ['processing', 'completed'])) {
+            $allowed_order_status = array("processing", "completed");
+            if (in_array($order->status, $allowed_order_status)) {
                 wp_redirect($this->get_return_url($order));
             } else {
                 wc_add_notice('Transaction was not processed or complete.', 'error');
                 wp_redirect(WC()->cart->get_cart_url());
             }
-
-            exit;
         }
 
         public function callback_handler()
         {
             $post_array = $_POST;
 
-            $this->log('Received callback: ' . json_encode($post_array));
+            if (count($post_array) > 0) {
 
-            if (!empty($post_array['order_id']) && ($order = wc_get_order($post_array['order_id']))) {
-                $key = $this->testmode ? $this->get_option('test_private_key') : $this->get_option('private_key');
-                $app = $this->testmode ? $this->get_option('test_publishable_key') : $this->get_option('publishable_key');
+                $order = wc_get_order($post_array['order_id']);
 
-                $data_out = [
-                    "app_id" => $app,
-                    "amount" => $order->total,
-                    "currency" => $order->get_currency(),
-                    "product_description" => $this->product_description,
-                    "order_id" => $post_array["order_id"],
-                    "customer_name" => $order->get_billing_first_name() . " " . $order->get_billing_last_name(),
-                    "customer_email" => $order->get_billing_email(),
-                    "customer_phone" => $order->get_billing_phone(),
-                    "status" => $post_array["status"]
-                ];
+                unset($data_out);
+                $mode = $this->testmode;
 
-                $generated_hash = $this->ph_sha256($data_out, $key);
-                $this->log("Generated hash: $generated_hash | Received: {$post_array['hash']}");
+                if ($mode == 1) {
+                    $key = $this->get_option('test_private_key');
+                    $app = $this->get_option('test_publishable_key');
+                } else {
+                    $key = $this->get_option('private_key');
+                    $app = $this->get_option('publishable_key');
+                }
 
-                if ($generated_hash === $post_array['hash'] && $post_array['amount'] == $order->total) {
-                    if ($post_array["status"] === "SUCCESS") {
+                $data_out["app_id"] = $app;
+                $data_out["amount"] = $order->total;
+                $data_out["currency"] = $order->get_currency();
+                $data_out["product_description"] = $this->product_description;
+                $data_out["order_id"] = $post_array["order_id"];
+                $data_out["customer_name"] = $order->get_billing_first_name() . " " . $order->get_billing_last_name();
+                $data_out["customer_email"] = $order->get_billing_email();
+                $data_out["customer_phone"] = $order->get_billing_phone();
+                $data_out["status"] = $post_array["status"];
+
+                $dataout_hash = self::ph_sha256($data_out, $key);
+
+                if ($dataout_hash == $post_array['hash'] && $post_array['amount'] == $order->total) {
+
+                    if ($post_array["status"] == "SUCCESS") {
+                        // Remove cart
                         WC()->cart->empty_cart();
-                        $order->add_order_note('Payment Success. Transaction: ' . $post_array["transaction_id"]);
-                        $order->add_order_note('Payment channel: ' . $post_array["channel"]);
+                        // The text for the note
+                        $note = __('Payment Success. This is order transaction number : ' . $post_array["transaction_id"]);
+                        $note2 = __('Payment method : ' . $post_array["channel"]);
+
+                        // Add the note
+                        $order->add_order_note($note);
+                        $order->add_order_note($note2);
                         $order->payment_complete();
-                        $this->log('Payment successful for Order ID: ' . $post_array["order_id"]);
+
                         wp_redirect($this->get_return_url($order));
+                    } elseif ($post_array["status"] == "FAIL") {
+
+                        wc_add_notice('Payment Failed. Please Try Again', 'error');
+                        $order->update_status('failed', 'Payment Failed.');
+                        wp_redirect(WC()->cart->get_cart_url());
+                    } elseif ($post_array["status"] == "PENDING") {
+
+                        wc_add_notice('Payment In Pending.', 'error');
+                        $order->update_status('pending', 'Payment In Pending.');
+                        wp_redirect(WC()->cart->get_cart_url());
+                    } elseif ($post_array["status"] == "TIMEOUT") {
+
+                        wc_add_notice('Payment Timeout.', 'error');
+                        $order->update_status('failed', 'Payment Timeout.');
+                        wp_redirect(WC()->cart->get_cart_url());
                     } else {
-                        $status_message = [
-                            "FAIL" => "Payment Failed.",
-                            "PENDING" => "Payment Pending.",
-                            "TIMEOUT" => "Payment Timeout."
-                        ];
-                        $message = $status_message[$post_array["status"]] ?? 'Unknown status.';
-                        $order->update_status('failed', $message);
-                        wc_add_notice($message, 'error');
                         wp_redirect(WC()->cart->get_cart_url());
                     }
                 } else {
-                    $this->log("Hash mismatch or invalid amount. Order ID: {$post_array['order_id']}", 'error');
-                    wc_add_notice('Invalid hash or payment error.', 'error');
-                    $order->update_status('failed', 'Hash mismatch or amount incorrect.');
+                    wc_add_notice('Invalid hash.', 'error');
+                    $order->update_status('failed', 'Payment Error.');
                     wp_redirect(WC()->cart->get_cart_url());
                 }
             } else {
-                wc_add_notice('No valid callback data received.', 'error');
-                $this->log('Callback handler received no data or invalid order_id.', 'error');
+                wc_add_notice('No data was sent.', 'error');
                 wp_redirect(WC()->cart->get_cart_url());
             }
-
-            exit;
         }
 
         public function ph_sha256($data, $secret)
         {
-            return hash('sha256', $secret . $data["amount"] . $data["currency"] . $data["product_description"] . $data["order_id"] . $data["customer_name"] . $data["customer_email"] . $data["customer_phone"] . $data["status"]);
+            $hash = hash('sha256', $secret . $data["amount"] . $data["currency"] . $data["product_description"] . $data["order_id"] . $data["customer_name"] . $data["customer_email"] . $data["customer_phone"] . $data["status"]);
+            return $hash;
         }
     }
 }
+
+?>
