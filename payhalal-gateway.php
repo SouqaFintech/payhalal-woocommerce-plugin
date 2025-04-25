@@ -148,9 +148,11 @@ function payhalal_init_gateway_class()
             $allowed_order_status = array("processing", "completed");
             if (in_array($order->status, $allowed_order_status)) {
                 wp_redirect($this->get_return_url($order));
+                exit;
             } else {
                 wc_add_notice('Transaction was not processed or complete.', 'error');
                 wp_redirect(WC()->cart->get_cart_url());
+                exit;
             }
         }
 
@@ -184,29 +186,36 @@ function payhalal_init_gateway_class()
                         $order->add_order_note(__('Payment Method: ' . $post_array["channel"]));
                         $order->payment_complete();
                         wp_redirect($this->get_return_url($order));
+                        exit;
                     } elseif ($post_array["status"] == "FAIL") {
                         wc_add_notice('Payment Failed. Please Try Again.', 'error');
                         $order->update_status('failed', 'Payment Failed.');
                         wp_redirect(WC()->cart->get_cart_url());
+                        exit;
                     } elseif ($post_array["status"] == "PENDING") {
                         wc_add_notice('Payment is pending.', 'error');
                         $order->update_status('pending', 'Payment Pending.');
                         wp_redirect(WC()->cart->get_cart_url());
+                        exit;
                     } elseif ($post_array["status"] == "TIMEOUT") {
                         wc_add_notice('Payment Timeout.', 'error');
                         $order->update_status('failed', 'Payment Timeout.');
                         wp_redirect(WC()->cart->get_cart_url());
+                        exit;
                     } else {
                         wp_redirect(WC()->cart->get_cart_url());
+                        exit;
                     }
                 } else {
                     wc_add_notice('Hash validation failed.', 'error');
                     $order->update_status('failed', 'Hash Mismatch.');
                     wp_redirect(WC()->cart->get_cart_url());
+                    exit;
                 }
             } else {
                 wc_add_notice('No data received.', 'error');
                 wp_redirect(WC()->cart->get_cart_url());
+                exit;
             }
         }
 
