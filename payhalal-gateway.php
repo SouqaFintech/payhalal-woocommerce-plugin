@@ -171,18 +171,18 @@ function payhalal_init_gateway_class()
                 $mode = $this->testmode;
 
                 $key = $mode ? $this->get_option('test_private_key') : $this->get_option('private_key');
-                $app = $mode ? $this->get_option('test_publishable_key') : $this->get_option('publishable_key');
 
                 $debug_mode = 'yes' === $this->get_option('debug_mode');
 
-                $data_out["app_id"] = $app;
-                $data_out["amount"] = $order->get_total();
-                $data_out["currency"] = $order->get_currency();
-                $data_out["product_description"] = $this->product_description;
+                // ✅ Use callback values from PayHalal to generate hash
+                $data_out["app_id"] = $post_array["app_id"];
+                $data_out["amount"] = $post_array["amount"];
+                $data_out["currency"] = $post_array["currency"];
+                $data_out["product_description"] = $post_array["product_description"];
                 $data_out["order_id"] = $post_array["order_id"];
-                $data_out["customer_name"] = $order->get_billing_first_name() . " " . $order->get_billing_last_name();
-                $data_out["customer_email"] = $order->get_billing_email();
-                $data_out["customer_phone"] = $order->get_billing_phone();
+                $data_out["customer_name"] = $post_array["customer_name"];
+                $data_out["customer_email"] = $post_array["customer_email"];
+                $data_out["customer_phone"] = $post_array["customer_phone"];
                 $data_out["status"] = $post_array["status"];
 
                 $dataout_hash = self::ph_sha256($data_out, $key);
@@ -200,7 +200,6 @@ function payhalal_init_gateway_class()
                     exit;
                 }
 
-                // Process normally if not debugging
                 if ($dataout_hash === $post_array['hash']) {
                     if ($post_array["status"] == "SUCCESS") {
                         WC()->cart->empty_cart();
@@ -210,17 +209,14 @@ function payhalal_init_gateway_class()
                         wp_redirect($this->get_return_url($order));
                         exit;
                     } elseif ($post_array["status"] == "FAIL") {
-                        wc_add_notice('Payment Failed. Please Try Again.', 'error');
                         $order->update_status('failed', 'Payment Failed.');
                         wp_redirect(WC()->cart->get_cart_url());
                         exit;
                     } elseif ($post_array["status"] == "PENDING") {
-                        wc_add_notice('Payment is pending.', 'error');
                         $order->update_status('pending', 'Payment Pending.');
                         wp_redirect(WC()->cart->get_cart_url());
                         exit;
                     } elseif ($post_array["status"] == "TIMEOUT") {
-                        wc_add_notice('Payment Timeout.', 'error');
                         $order->update_status('failed', 'Payment Timeout.');
                         wp_redirect(WC()->cart->get_cart_url());
                         exit;
@@ -229,13 +225,11 @@ function payhalal_init_gateway_class()
                         exit;
                     }
                 } else {
-                    wc_add_notice('Hash validation failed.', 'error');
                     $order->update_status('failed', 'Hash Mismatch.');
                     wp_redirect(WC()->cart->get_cart_url());
                     exit;
                 }
             } else {
-                wc_add_notice('No data received.', 'error');
                 wp_redirect(WC()->cart->get_cart_url());
                 exit;
             }
