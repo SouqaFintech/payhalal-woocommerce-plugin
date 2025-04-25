@@ -5,7 +5,7 @@
  * Description: Payment Without Was-Was
  * Author:  Souqa Fintech Sdn Bhd
  * Author URI: https://payhalal.my
- * Version: 1.0.2
+ * Version: 1.0.3
  */
 
 add_action('plugins_loaded', 'payhalal_init_gateway_class');
@@ -148,9 +148,11 @@ function payhalal_init_gateway_class()
             $allowed_order_status = array("processing", "completed");
             if (in_array($order->status, $allowed_order_status)) {
                 wp_redirect($this->get_return_url($order));
+                exit;
             } else {
                 wc_add_notice('Transaction was not processed or complete.', 'error');
                 wp_redirect(WC()->cart->get_cart_url());
+                exit;
             }
         }
 
@@ -167,7 +169,7 @@ function payhalal_init_gateway_class()
 
                 $data_out["app_id"] = $app;
                 $data_out["amount"] = $order->get_total();
-                $data_out["currency"] = "MYR";
+                $data_out["currency"] = $order->get_currency();
                 $data_out["product_description"] = $this->product_description;
                 $data_out["order_id"] = $post_array["order_id"];
                 $data_out["customer_name"] = $order->get_billing_first_name() . " " . $order->get_billing_last_name();
@@ -176,7 +178,7 @@ function payhalal_init_gateway_class()
                 $data_out["status"] = $post_array["status"];
 
                 $dataout_hash = self::ph_sha256($data_out, $key);
-
+              
                 // ✅ On-screen debug output
                 echo "<h2>🔍 PayHalal Callback Debug</h2>";
                 echo "<pre>";
@@ -192,8 +194,9 @@ function payhalal_init_gateway_class()
 
                 // The rest is skipped due to exit during test
             } else {
-                wc_add_notice('No data was sent.', 'error');
+                wc_add_notice('No data received.', 'error');
                 wp_redirect(WC()->cart->get_cart_url());
+                exit;
             }
         }
 
