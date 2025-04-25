@@ -167,7 +167,7 @@ function payhalal_init_gateway_class()
 
                 $data_out["app_id"] = $app;
                 $data_out["amount"] = $order->get_total();
-                $data_out["currency"] = $this->get_payhalal_currency();
+                $data_out["currency"] = $this->get_currency();
                 $data_out["product_description"] = $this->product_description;
                 $data_out["order_id"] = $post_array["order_id"];
                 $data_out["customer_name"] = $order->get_billing_first_name() . " " . $order->get_billing_last_name();
@@ -213,11 +213,6 @@ function payhalal_init_gateway_class()
         public function ph_sha256($data, $secret)
         {
             return hash('sha256', $secret . $data["amount"] . $data["currency"] . $data["product_description"] . $data["order_id"] . $data["customer_name"] . $data["customer_email"] . $data["customer_phone"] . $data["status"]);
-        }
-
-        private function get_payhalal_currency()
-        {
-            return 'MYR';
         }
     }
 }
