@@ -189,6 +189,7 @@ function payhalal_init_gateway_class()
                 echo "</pre>";
                 exit;
 
+
                 // The rest is skipped due to exit during test
             } else {
                 wc_add_notice('No data was sent.', 'error');
