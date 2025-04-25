@@ -90,7 +90,13 @@ function payhalal_init_gateway_class()
                 'private_key' => array(
                     'title' => 'Live Secret Key',
                     'type' => 'text'
-                )
+                ),
+                'debug_mode' => array(
+                    'title' => 'Debug Mode',
+                    'label' => 'Enable Debug Mode (for Callback Hash Testing)',
+                    'type' => 'checkbox',
+                    'default' => 'no',
+                ),
             );
         }
 
@@ -167,6 +173,8 @@ function payhalal_init_gateway_class()
                 $key = $mode ? $this->get_option('test_private_key') : $this->get_option('private_key');
                 $app = $mode ? $this->get_option('test_publishable_key') : $this->get_option('publishable_key');
 
+                $debug_mode = 'yes' === $this->get_option('debug_mode');
+
                 $data_out["app_id"] = $app;
                 $data_out["amount"] = $order->get_total();
                 $data_out["currency"] = $order->get_currency();
@@ -178,21 +186,54 @@ function payhalal_init_gateway_class()
                 $data_out["status"] = $post_array["status"];
 
                 $dataout_hash = self::ph_sha256($data_out, $key);
-              
-                // ✅ On-screen debug output
-                echo "<h2>🔍 PayHalal Callback Debug</h2>";
-                echo "<pre>";
-                echo "Expected Hash: " . $dataout_hash . "\n";
-                echo "Received Hash: " . $post_array['hash'] . "\n\n";
-                echo "Data used to generate hash:\n";
-                print_r($data_out);
-                echo "\nFull POST array:\n";
-                print_r($post_array);
-                echo "</pre>";
-                exit;
 
+                if ($debug_mode) {
+                    echo "<h2>🔍 PayHalal Callback Debug</h2>";
+                    echo "<pre>";
+                    echo "Expected Hash: " . $dataout_hash . "\n";
+                    echo "Received Hash: " . $post_array['hash'] . "\n\n";
+                    echo "Data used to generate hash:\n";
+                    print_r($data_out);
+                    echo "\nFull POST array:\n";
+                    print_r($post_array);
+                    echo "</pre>";
+                    exit;
+                }
 
-                // The rest is skipped due to exit during test
+                // Process normally if not debugging
+                if ($dataout_hash === $post_array['hash']) {
+                    if ($post_array["status"] == "SUCCESS") {
+                        WC()->cart->empty_cart();
+                        $order->add_order_note(__('Payment Success. Transaction ID: ' . $post_array["transaction_id"]));
+                        $order->add_order_note(__('Payment Method: ' . $post_array["channel"]));
+                        $order->payment_complete();
+                        wp_redirect($this->get_return_url($order));
+                        exit;
+                    } elseif ($post_array["status"] == "FAIL") {
+                        wc_add_notice('Payment Failed. Please Try Again.', 'error');
+                        $order->update_status('failed', 'Payment Failed.');
+                        wp_redirect(WC()->cart->get_cart_url());
+                        exit;
+                    } elseif ($post_array["status"] == "PENDING") {
+                        wc_add_notice('Payment is pending.', 'error');
+                        $order->update_status('pending', 'Payment Pending.');
+                        wp_redirect(WC()->cart->get_cart_url());
+                        exit;
+                    } elseif ($post_array["status"] == "TIMEOUT") {
+                        wc_add_notice('Payment Timeout.', 'error');
+                        $order->update_status('failed', 'Payment Timeout.');
+                        wp_redirect(WC()->cart->get_cart_url());
+                        exit;
+                    } else {
+                        wp_redirect(WC()->cart->get_cart_url());
+                        exit;
+                    }
+                } else {
+                    wc_add_notice('Hash validation failed.', 'error');
+                    $order->update_status('failed', 'Hash Mismatch.');
+                    wp_redirect(WC()->cart->get_cart_url());
+                    exit;
+                }
             } else {
                 wc_add_notice('No data received.', 'error');
                 wp_redirect(WC()->cart->get_cart_url());
