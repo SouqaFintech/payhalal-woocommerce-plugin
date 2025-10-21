@@ -9,7 +9,6 @@
  */
 
 add_action('plugins_loaded', 'payhalal_init_gateway_class');
-
 function payhalal_init_gateway_class()
 {
     add_filter('woocommerce_payment_gateways', 'payhalal_add_gateway');
@@ -113,6 +112,14 @@ function payhalal_init_gateway_class()
             $order_id = $_GET['order_id'];
             if ($order_id > 0) {
                 $order = wc_get_order($order_id);
+                foreach ($order->get_items() as $item_id => $item) {
+                    $product = $item->get_product();
+                    if ($product->is_type('variation')) {
+                        $variation_attributes = $product->get_attributes();
+                        $data_out["payment_cycle"] = $variation_attributes['payment-cycle'];
+                    }
+                }
+
                 if ($order != "") {
                     $data_out["app_id"] = $this->publishable_key;
                     $data_out["amount"] = $order->get_total();
@@ -123,6 +130,10 @@ function payhalal_init_gateway_class()
                     $data_out["customer_email"] = $order->get_billing_email();
                     $data_out["customer_phone"] = $order->get_billing_phone();
                     $data_out["hash"] = hash('sha256', $this->private_key . $data_out["amount"] . $data_out["currency"] . $data_out["product_description"] . $data_out["order_id"] . $data_out["customer_name"] . $data_out["customer_email"] . $data_out["customer_phone"]);
+                    if (isset($data_out['payment_cycle'])) {
+                        //INFO DEBUG MAN
+                        $this->action_url = "https://api-merchant.payhalal.my/seamless/Nomu/index.php";
+                    }
 ?>
                     <form id="payhalal" method="post" action="<?= $this->action_url; ?>">
                         <?php foreach ($data_out as $key => $value) { ?>
