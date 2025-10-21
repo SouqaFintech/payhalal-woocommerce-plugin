@@ -5,7 +5,7 @@
  * Description: Payment Without Was-Was
  * Author:  Souqa Fintech Sdn Bhd
  * Author URI: https://payhalal.my
- * Version: 1.0.3
+ * Version: 1.0.4
  */
 
 add_action('plugins_loaded', 'payhalal_init_gateway_class');
