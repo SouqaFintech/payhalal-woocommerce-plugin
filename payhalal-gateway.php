@@ -117,6 +117,12 @@ function payhalal_init_gateway_class()
                     if ($product->is_type('variation')) {
                         $variation_attributes = $product->get_attributes();
                         $data_out["payment_cycle"] = $variation_attributes['payment-cycle'];
+                        $checkChannel = $this->checkChannel($this->publishable_key, $this->private_key);
+
+                        if (!$checkChannel) {
+                            wc_add_notice('Recurring not enabled for your MID', 'error');
+                            wp_redirect(WC()->cart->get_cart_url());
+                        }
                     }
                 }
 
@@ -131,7 +137,6 @@ function payhalal_init_gateway_class()
                     $data_out["customer_phone"] = $order->get_billing_phone();
                     $data_out["hash"] = hash('sha256', $this->private_key . $data_out["amount"] . $data_out["currency"] . $data_out["product_description"] . $data_out["order_id"] . $data_out["customer_name"] . $data_out["customer_email"] . $data_out["customer_phone"]);
                     if (isset($data_out['payment_cycle'])) {
-                        //INFO DEBUG MAN
                         $this->action_url = "https://api-merchant.payhalal.my/seamless/Nomu/index.php";
                     }
 ?>
@@ -249,6 +254,45 @@ function payhalal_init_gateway_class()
         public function ph_sha256($data, $secret)
         {
             return hash('sha256', $secret . $data["amount"] . $data["currency"] . $data["product_description"] . $data["order_id"] . $data["customer_name"] . $data["customer_email"] . $data["customer_phone"] . $data["status"]);
+        }
+
+        public function checkChannel($appKey, $appSecret)
+        {
+
+            $curl = curl_init();
+            $data = [
+                "app_key" => $appKey,
+                "app_secret" => $appSecret
+            ];
+
+            curl_setopt_array($curl, [
+                CURLOPT_URL => "https://payhalal.my/nomupay/check-enabled.php",
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => "",
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => "GET",
+                CURLOPT_POSTFIELDS => json_encode($data),
+                CURLOPT_HTTPHEADER => [
+                    "Content-Type: application/json",
+                ],
+            ]);
+
+            $response = curl_exec($curl);
+            $err = curl_error($curl);
+
+            curl_close($curl);
+
+            if ($err) {
+                return false;
+            } else {
+                $data = json_decode($response, true);
+                if ($data["code"] == "200") {
+                    return true;
+                }
+                return false;
+            }
         }
     }
 }
