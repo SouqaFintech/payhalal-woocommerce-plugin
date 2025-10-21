@@ -4,6 +4,10 @@ All notable changes to this project will be documented here.
 
 ---
 
+## [1.0.4] - 2025-10-21
+
+- Added recurring option to post to `https://api-merchant.payhalal.my/seamless/Nomu/index.php`;
+
 ## [1.0.3] – 2025-04-25
 
 ### Added
@@ -24,3 +28,4 @@ All notable changes to this project will be documented here.
 ## [1.0.2] – Initial release
 
 - First release of the PayHalal payment gateway plugin for WooCommerce.
+
