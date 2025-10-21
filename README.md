@@ -27,6 +27,15 @@ After you have activated the plugin and created your Payhalal account, head to t
 
 If you have any troubles with installation or have any questions, please contact <mark>tech_support@payhalal.my</mark>.
 
+## Recurring option
+### To enable recurring payments:
+- Make sure your MID (Merchant ID) is approved for recurring transactions. You can confirm this with our Onboarding Team.
+- Once enabled, create a new product in WordPress → Products → Add New Product.
+- In the Product Data section:
+  -  Add a new attribute named `payment_cycle` with following values: YEARLY | MONTHLY | WEEKLY.
+  -  Fill in all other required product details.
+  -  After publishing the product, customers will be able to choose their preferred payment cycle (Yearly, Monthly, or Weekly) when purchasing.
+
 ## Note
 
 SouqaFintech SDN BHD **IS NOT RESPONSIBLE** for any problems that may arise from the use of this extension. Use this at your own risk. For any assistance, please email <mark>tech_support@payhalal.my</mark>.
