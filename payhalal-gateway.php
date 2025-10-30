@@ -96,6 +96,12 @@ function payhalal_init_gateway_class()
                     'type' => 'checkbox',
                     'default' => 'no',
                 ),
+                'recurring_pro_rate' => array(
+                    'title' => 'recurring_pro_rate',
+                    'label' => 'Enable Pro rate (tick if want to enable pro rate , by default normal subs by date)',
+                    'type' => 'checkbox',
+                    'default' => 'no',
+                ),
             );
         }
 
@@ -116,6 +122,7 @@ function payhalal_init_gateway_class()
                     $product = $item->get_product();
                     if ($product->is_type('variation')) {
                         $variation_attributes = $product->get_attributes();
+                        $productId = $product->parent_id;
                         $data_out["payment_cycle"] = $variation_attributes['payment-cycle'];
                         $checkChannel = $this->checkChannel($this->publishable_key, $this->private_key);
 
@@ -135,10 +142,21 @@ function payhalal_init_gateway_class()
                     $data_out["customer_name"] = $order->get_billing_first_name() . " " . $order->get_billing_last_name();
                     $data_out["customer_email"] = $order->get_billing_email();
                     $data_out["customer_phone"] = $order->get_billing_phone();
-                    $data_out["hash"] = hash('sha256', $this->private_key . $data_out["amount"] . $data_out["currency"] . $data_out["product_description"] . $data_out["order_id"] . $data_out["customer_name"] . $data_out["customer_email"] . $data_out["customer_phone"]);
+
                     if (isset($data_out['payment_cycle'])) {
+                        $data_out["product_description"] = $this->product_description . "|" . $productId;
+                        $pro_rate = $this->get_option('recurring_pro_rate');
+                        if ($pro_rate == "yes") {
+                            $data_out["pro_rate"] = 1;
+                        } else {
+                            $data_out["pro_rate"] = 0;
+                        }
+
+                        //INFO for test url
                         $this->action_url = "https://api-merchant.payhalal.my/seamless/Nomu/index.php";
                     }
+                    $data_out["hash"] = hash('sha256', $this->private_key . $data_out["amount"] . $data_out["currency"] . $data_out["product_description"] . $data_out["order_id"] . $data_out["customer_name"] . $data_out["customer_email"] . $data_out["customer_phone"]);
+
 ?>
                     <form id="payhalal" method="post" action="<?= $this->action_url; ?>">
                         <?php foreach ($data_out as $key => $value) { ?>
@@ -181,7 +199,6 @@ function payhalal_init_gateway_class()
         public function callback_handler()
         {
             $post_array = $_POST;
-
             if (count($post_array) > 0) {
                 $order = wc_get_order($post_array['order_id']);
                 $mode = $this->testmode;
@@ -213,16 +230,41 @@ function payhalal_init_gateway_class()
                     echo "\nFull POST array:\n";
                     print_r($post_array);
                     echo "</pre>";
-                    exit;
                 }
 
                 if ($dataout_hash === $post_array['hash']) {
                     if ($post_array["status"] == "SUCCESS") {
-                        WC()->cart->empty_cart();
-                        $order->add_order_note(__('Payment Success. Transaction ID: ' . $post_array["transaction_id"]));
-                        $order->add_order_note(__('Payment Method: ' . $post_array["channel"]));
-                        $order->payment_complete();
-                        wp_redirect($this->get_return_url($order));
+                        if ($post_array["source"] == "RECURRING_NOMU") {
+                            $order = wc_create_order();
+
+                            $product_id = $post_array["product_id"] ?? 0;
+                            $quantity = 1;
+
+                            $billing_data = [
+                                'first_name' => $post_array["customer_name"],
+                                'email'      => $post_array["customer_email"],
+                                'phone'      => $post_array["customer_phone"],
+                            ];
+
+                            $order->set_address($billing_data, 'billing');
+
+                            $order->add_product(wc_get_product($product_id), $quantity);
+                            $order->add_order_note(__('Payment Success. Transaction ID: ' . $post_array["transaction_id"]));
+                            $order->add_order_note(__('Payment Method: ' . $post_array["channel"]));
+                            $order->payment_complete();
+
+                            $order->calculate_totals();
+                            $order->save();
+
+                            echo 'New order created: #' . $order->get_id();
+                        } else {
+                            WC()->cart->empty_cart();
+                            $order->add_order_note(__('Payment Success. Transaction ID: ' . $post_array["transaction_id"]));
+                            $order->add_order_note(__('Payment Method: ' . $post_array["channel"]));
+                            $order->payment_complete();
+                            wp_redirect($this->get_return_url($order));
+                        }
+
                         exit;
                     } elseif ($post_array["status"] == "FAIL") {
                         $order->update_status('failed', 'Payment Failed.');

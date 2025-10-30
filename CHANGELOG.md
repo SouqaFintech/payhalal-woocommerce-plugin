@@ -4,6 +4,10 @@ All notable changes to this project will be documented here.
 
 ---
 
+## [1.0.5] - 2025-10-30
+
+- handle recurring callback, properly created order using wordpress interface
+- 
 ## [1.0.4] - 2025-10-21
 
 - Added recurring option to post to `https://api-merchant.payhalal.my/seamless/Nomu/index.php`;
