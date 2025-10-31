@@ -32,9 +32,9 @@ If you have any troubles with installation or have any questions, please contact
 - Make sure your MID (Merchant ID) is approved for recurring transactions. You can confirm this with our Onboarding Team.
 - Once enabled, create a new product in WordPress → Products → Add New Product.
 - In the Product Data section:
-  -  Add a new attribute named `payment_cycle` with following values: YEARLY | MONTHLY | WEEKLY.
+  -  Add a new attribute named `payment cycle` with following values:  MONTHLY | WEEKLY | DAILY | TEST.
   -  Fill in all other required product details.
-  -  After publishing the product, customers will be able to choose their preferred payment cycle (Yearly, Monthly, or Weekly) when purchasing.
+  - to cancel and list out subscription please refer to recurring docs 
 
 ## Note
 
