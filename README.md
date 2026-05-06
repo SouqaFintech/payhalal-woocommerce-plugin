@@ -1,41 +1,209 @@
-# Wordpress WooCommerce Plugin for Payhalal
+# PayHalal for WooCommerce
 
-## Installation Instructions
+Official WooCommerce payment gateway plugin for PayHalal.
 
-For detailed installation instructions, kindly refer to our [Wiki](https://github.com/SouqaFintech/payhalal-woocommerce-plugin/wiki)
+Accept secure online payments via PayHalal directly from your WooCommerce store.
 
-*NOTE:* You will need to have Woocommerce installed for this to work.
+---
 
-You can either Download the zip file from [here](https://github.com/SouqaFintech/payhalal-woocommerce-plugin/archive/refs/heads/main.zip) or run the following command in `/wp-content/plugins`:
+## Features
+
+- WooCommerce payment gateway integration
+- WooCommerce Checkout Block support
+- HPOS (High-Performance Order Storage) compatibility
+- Recurring payment support
+- GitHub-based plugin update support
+- Compatible with latest WooCommerce versions
+- Native WooCommerce order handling
+- Secure hash validation
+
+---
+
+## Requirements
+
+- WordPress 6.0 or higher
+- WooCommerce 7.0 or higher
+- PHP 7.4 or higher
+
+---
+
+## Installation
+
+For detailed installation instructions, kindly refer to our Wiki:
+
+👉 https://github.com/SouqaFintech/payhalal-woocommerce-plugin/wiki
+
+### Method 1 — Download ZIP
+
+Download the latest release:
+
+```bash
+https://github.com/SouqaFintech/payhalal-woocommerce-plugin/releases
+```
+
+Upload the ZIP file via:
+
+```txt
+WordPress Admin → Plugins → Add New → Upload Plugin
+```
+
+---
+
+### Method 2 — Git Clone
+
+Run the following command inside:
+
+```txt
+/wp-content/plugins
+```
 
 ```bash
 git clone https://github.com/SouqaFintech/payhalal-woocommerce-plugin
 ```
 
-After you have activated the plugin and created your Payhalal account, head to the Payhalal Merchant Dashboard and click on Developer tools. Add the following URLs:
+---
 
-**Note:** Please do not set your callback url to avoid any issues.
+## Activation
 
-- Return URL: https://your-website/?wc-api=WC_Payhalal_Gateway
-- Success URL: https://your-website/?wc-api=WC_Payhalal_Gateway
-- Cancel URL: https://your-website/?wc-api=WC_Payhalal_Gateway
-- Callback URL: Please leave the callback-url blank.
+1. Activate the plugin from WordPress Admin → Plugins
+2. Go to:
 
-**Replace "your-website" with your shopping cart domain.**
+```txt
+WooCommerce → Settings → Payments
+```
 
-<img width="495" alt="image" src="https://user-images.githubusercontent.com/34120495/221494394-0379444e-fe5f-4a2e-b2c0-327d87966369.png">
+3. Enable:
 
-If you have any troubles with installation or have any questions, please contact <mark>tech_support@payhalal.my</mark>.
+```txt
+PayHalal Gateway
+```
 
-## Recurring option
-### To enable recurring payments:
-- Make sure your MID (Merchant ID) is approved for recurring transactions. You can confirm this with our Onboarding Team.
-- Once enabled, create a new product in WordPress → Products → Add New Product.
-- In the Product Data section:
-  -  Add a new attribute named `payment cycle` with following values:  MONTHLY | WEEKLY | DAILY | TEST.
-  -  Fill in all other required product details.
-  - to cancel and list out subscription please refer to recurring docs 
+4. Insert your:
+   - App ID
+   - Secret Key
 
-## Note
+---
 
-SouqaFintech SDN BHD **IS NOT RESPONSIBLE** for any problems that may arise from the use of this extension. Use this at your own risk. For any assistance, please email <mark>tech_support@payhalal.my</mark>.
+## Merchant Dashboard Configuration
+
+After activating the plugin and creating your PayHalal merchant account:
+
+1. Login to PayHalal Merchant Dashboard
+2. Open:
+
+   ```txt
+   Developer Tools
+   ```
+
+3. Configure the following URLs:
+
+### Recommended URLs
+
+| Type         | URL                                                  |
+| ------------ | ---------------------------------------------------- |
+| Return URL   | `https://your-website.com/?wc-api=payhalal_callback` |
+| Success URL  | `https://your-website.com/?wc-api=payhalal_callback` |
+| Cancel URL   | `https://your-website.com/cart`                      |
+| Callback URL | `https://your-website.com/?wc-api=payhalal_callback` |
+
+Replace:
+
+```txt
+your-website.com
+```
+
+with your actual WooCommerce domain.
+
+---
+
+## WooCommerce Checkout Block Support
+
+This plugin supports:
+
+- Classic WooCommerce Checkout
+- New WooCommerce Checkout Block
+
+No additional configuration is required.
+
+---
+
+## Recurring Payments
+
+### Requirements
+
+- Your MID (Merchant ID) must be enabled for recurring transactions.
+- Please contact the PayHalal onboarding team for activation.
+
+### Setup
+
+1. Create a WooCommerce product
+2. Set product type to:
+
+   ```txt
+   Variable Product
+   ```
+
+3. Add an attribute named:
+
+```txt
+payment-cycle
+```
+
+4. Supported values:
+
+```txt
+MONTHLY
+WEEKLY
+DAILY
+TEST
+```
+
+5. Save product configuration.
+
+---
+
+## Plugin Updates
+
+This plugin supports GitHub-based updates.
+
+To receive updates properly:
+
+- Install plugin using release ZIP
+- Keep plugin folder name unchanged
+- Use official GitHub releases
+
+---
+
+## Troubleshooting
+
+### Payment Gateway Not Showing
+
+Please ensure:
+
+- WooCommerce is installed
+- Plugin is activated
+- Gateway is enabled in WooCommerce settings
+
+### Checkout Block Not Showing Gateway
+
+Please ensure:
+
+- WooCommerce Blocks is updated
+- Checkout Block is used correctly
+- Gateway is enabled
+
+---
+
+## Support
+
+For technical assistance:
+
+📧 tech_support@payhalal.my
+
+---
+
+## Disclaimer
+
+Souqa Fintech Sdn Bhd is not responsible for any issues arising from improper configuration or third-party modifications of this plugin.
+
+Please use this plugin responsibly and always test in sandbox mode before production deployment.
