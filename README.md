@@ -97,7 +97,7 @@ After activating the plugin and creating your PayHalal merchant account:
 
 3. Configure the following URLs:
 
-### Recommended URLs
+### URLs for Configuration
 
 | Type         | URL                                                  |
 | ------------ | ---------------------------------------------------- |
